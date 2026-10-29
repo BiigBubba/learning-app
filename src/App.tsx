@@ -35,6 +35,21 @@ function App() {
 
   const [errorMessage, setErrorMessage] = useState("");
 
+  const [serverEntries, setServerEntries] = useState<LearningEntryData[]>([]);
+  const [loadError, setLoadError] = useState("");
+
+async function loadServerEntries() {
+  setLoadError("");
+  try {
+    const response = await fetch("http://localhost:3001/api/entries");
+    if (!response.ok) throw new Error("Could not load entries");
+    const data: LearningEntryData[] = await response.json();
+    setServerEntries(data);
+  } catch {
+    setLoadError("Could not connect to the backend.");
+  }
+}
+
   function handleAddEntry() {
     if (topic.trim() === "" || learned.trim() === "") {
       setErrorMessage("Topic and what you learned cannot be empty.");
@@ -128,6 +143,19 @@ function App() {
             onChange={(event) => setComment(event.target.value)}
           />
         </div>
+
+        <section>
+          <h2>Entries from the backend</h2>
+          <button type="button" onClick={loadServerEntries}>
+            Load from backend
+          </button>
+          {loadError && <p>{loadError}</p>}
+          <ul>
+            {serverEntries.map((entry) => (
+              <li key={entry.id}>{entry.topic}</li>
+            ))}
+         </ul>
+        </section>
 
         {errorMessage !== "" && <p role="alert">{errorMessage}</p>}
 
