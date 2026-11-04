@@ -1,56 +1,64 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import LearningEntry from "./components/LearningEntry";
 import type { LearningEntryData } from "./types/LearningEntryData";
-
-const firstEntry: LearningEntryData = {
-  id: 1,
-  topic: "React Components",
-  date: "2026-10-26",
-  learned: "Components help divide the UI into reusable parts.",
-  confidence: 4,
-  comment: "I feel confident about this topic.",
-};
-
-const secondEntry: LearningEntryData = {
-  id: 2,
-  topic: "React and TypeScript basics",
-  date: "2026-10-21",
-  learned: "I learned about React components and TypeScript integration.",
-  confidence: 4,
-  comment: "I'm not fully confident about this yet but practice makes perfect.",
-};
-
-const initialEntries: LearningEntryData[] = [firstEntry, secondEntry];
 
 function App() {
   const studentName: string = "Werneri Koski";
 
-  const [entries, setEntries] = useState<LearningEntryData[]>(initialEntries);
-
+  // Form field state
   const [topic, setTopic] = useState("");
   const [date, setDate] = useState("");
   const [learned, setLearned] = useState("");
   const [confidence, setConfidence] = useState(3);
   const [comment, setComment] = useState("");
 
+  // Feedback state
   const [errorMessage, setErrorMessage] = useState("");
+  const [message, setMessage] = useState("");
 
+  // The one list of entries shown on the page (comes from the backend / MariaDB)
   const [serverEntries, setServerEntries] = useState<LearningEntryData[]>([]);
   const [loadError, setLoadError] = useState("");
 
-async function loadServerEntries() {
-  setLoadError("");
-  try {
-    const response = await fetch("http://localhost:3001/api/entries");
-    if (!response.ok) throw new Error("Could not load entries");
-    const data: LearningEntryData[] = await response.json();
-    setServerEntries(data);
-  } catch {
-    setLoadError("Could not connect to the backend.");
+  // Used by the "Load from backend" button and to refresh the list after a POST.
+  // It rethrows the error so callers can tell "save failed" from "refresh failed".
+  async function loadServerEntries() {
+    setLoadError("");
+    try {
+      const response = await fetch("http://localhost:3001/api/entries");
+      if (!response.ok) throw new Error("Could not load entries");
+      const data: LearningEntryData[] = await response.json();
+      setServerEntries(data);
+    } catch (error) {
+      setLoadError("Could not load entries from the backend.");
+      throw error;
+    }
   }
-}
 
-  function handleAddEntry() {
+  // Load saved entries automatically when the component first appears.
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadInitialEntries() {
+      try {
+        const response = await fetch("http://localhost:3001/api/entries");
+        if (!response.ok) throw new Error("Could not load entries");
+        const data: LearningEntryData[] = await response.json();
+        if (!ignore) setServerEntries(data);
+      } catch {
+        if (!ignore) setLoadError("Could not load entries from the backend.");
+      }
+    }
+
+    void loadInitialEntries();
+    return () => { ignore = true; };
+  }, []);
+
+  async function handleAddEntry() {
+    setMessage("");
+    setErrorMessage("");
+
+    // Validation stays before the request
     if (topic.trim() === "" || learned.trim() === "") {
       setErrorMessage("Topic and what you learned cannot be empty.");
       return;
@@ -63,24 +71,46 @@ async function loadServerEntries() {
       setErrorMessage("Confidence must be a whole number from 1 to 5.");
       return;
     }
+    if (comment.trim() === "") {
+      setErrorMessage("Comment cannot be empty.");
+      return;
+    }
 
-    const newEntry: LearningEntryData = {
-      id: Date.now(),
-      topic: topic.trim(),
+    const newEntry = {
+      topic,
       date,
-      learned: learned.trim(),
-      confidence,
-      comment: comment.trim(),
+      learned,
+      confidence: Number(confidence),
+      comment,
     };
 
-    setEntries((currentEntries) => [...currentEntries, newEntry]);
+    // 1) Save the entry (POST)
+    try {
+      const response = await fetch("http://localhost:3001/api/entries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newEntry),
+      });
+      if (!response.ok) throw new Error("Could not save entry");
+    } catch {
+      setMessage("Saving failed. Please try again.");
+      return;
+    }
 
+    // 2) Saved successfully: reset the form
     setTopic("");
     setDate("");
     setLearned("");
     setConfidence(3);
     setComment("");
-    setErrorMessage("");
+
+    // 3) Refresh the list from the server (MariaDB generated the id)
+    try {
+      await loadServerEntries();
+      setMessage("Entry saved successfully.");
+    } catch {
+      setMessage("Entry was saved, but the list could not be refreshed.");
+    }
   }
 
   return (
@@ -144,30 +174,25 @@ async function loadServerEntries() {
           />
         </div>
 
-        <section>
-          <h2>Entries from the backend</h2>
-          <button type="button" onClick={loadServerEntries}>
-            Load from backend
-          </button>
-          {loadError && <p>{loadError}</p>}
-          <ul>
-            {serverEntries.map((entry) => (
-              <li key={entry.id}>{entry.topic}</li>
-            ))}
-         </ul>
-        </section>
-
         {errorMessage !== "" && <p role="alert">{errorMessage}</p>}
 
         <button type="button" onClick={handleAddEntry}>
           Add entry
         </button>
+        {message && <p>{message}</p>}
       </section>
 
       <section>
-        <h2>Entries</h2>
+        <h2>Entries from the backend</h2>
+        <button
+          type="button"
+          onClick={() => { void loadServerEntries().catch(() => {}); }}
+        >
+          Load from backend
+        </button>
+        {loadError && <p>{loadError}</p>}
         <ul>
-          {entries.map((entry) => (
+          {serverEntries.map((entry) => (
             <li key={entry.id}>
               <LearningEntry entry={entry} />
             </li>
