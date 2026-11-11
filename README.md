@@ -1,32 +1,13 @@
-# React + TypeScript + Vite
+## Application Structure
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+**Pages and components**
+The app has two pages: `HomePage`, which shows the title and a short introduction, and `EntriesPage`, which loads and lists the entries from the backend. `EntriesPage` uses two reusable components: `LearningEntryForm`, which holds the form and saves a new entry with POST, and `LearningEntry`, which displays a single entry. `App.tsx` now only contains the navigation links and the routes.
 
-Currently, two official plugins are available:
+**What React, Express and MariaDB do**
+React is the frontend. It shows the user interface, handles form input and sends requests to the backend. Express is the backend. It receives HTTP requests at `/api/entries`, runs the SQL queries and returns JSON. MariaDB stores the entries permanently, so they are still there after the page is refreshed or the servers are restarted.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+**`/entries` vs `GET /api/entries`**
+`/entries` is a frontend route. It only tells React Router which page to show in the browser, here the Entries page. `GET /api/entries` is a backend API route on the Express server. It does not show a page but returns the saved entries as JSON data.
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+**Why REST is a reasonable choice**
+The app has one clear resource, learning entries, and only simple operations on it: `GET /api/entries` retrieves the list and `POST /api/entries` adds a new one.
