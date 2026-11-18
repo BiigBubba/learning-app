@@ -11,3 +11,7 @@ React is the frontend. It shows the user interface, handles form input and sends
 
 **Why REST is a reasonable choice**
 The app has one clear resource, learning entries, and only simple operations on it: `GET /api/entries` retrieves the list and `POST /api/entries` adds a new one.
+
+## State Management
+
+Form field values such as the topic and comment are local React state because only the form component uses them. Learning entries are shared Zustand state because multiple React components need the same current list. MariaDB remains necessary because Zustand stores stuff in memory only. Refreshing the browser resets the Zustand store, while saved records remain in MariaDB and can be loaded again with `GET /api/entries`.

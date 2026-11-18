@@ -1,65 +1,45 @@
 import { useEffect, useState } from "react";
+import { useLearningStore } from "../store/useLearningStore";
+import { loadEntries } from "../api/entries";
 import LearningEntry from "../components/LearningEntry";
 import LearningEntryForm from "../components/LearningEntryForm";
-import type { LearningEntryData } from "../types/LearningEntryData";
 
 export default function EntriesPage() {
-    const [serverEntries, setServerEntries] = useState<LearningEntryData[]>([]);
-    const [loadError, setLoadError] = useState("");
+  const entries = useLearningStore((state) => state.entries);
+  const [loadError, setLoadError] = useState("");
 
-    async function loadServerEntries() {
-        setLoadError("");
-        try {
-        const response = await fetch("http://localhost:3001/api/entries");
-        if (!response.ok) throw new Error("Could not load entries");
-        const data: LearningEntryData[] = await response.json();
-        setServerEntries(data);
-        } catch (error) {
-        setLoadError("Could not load entries from the backend.");
-        throw error;
-        }
+  async function handleLoadEntries() {
+    setLoadError("");
+
+    try {
+      await loadEntries();
+    } catch {
+      setLoadError("Could not load entries. Please try again.");
     }
+  }
 
-    useEffect(() => {
-        let ignore = false;
-
-        async function loadInitialEntries() {
-        try {
-            const response = await fetch("http://localhost:3001/api/entries");
-            if (!response.ok) throw new Error("Could not load entries");
-            const data: LearningEntryData[] = await response.json();
-            if (!ignore) setServerEntries(data);
-        } catch {
-            if (!ignore) setLoadError("Could not load entries from the backend.");
-        }
-        }
-
-        void loadInitialEntries();
-        return () => { ignore = true; };
-    }, []);
+  useEffect(() => {
+    void handleLoadEntries();
+  }, []);
 
   return (
     <main>
       <h1>Entries</h1>
-      <LearningEntryForm onSaved={loadServerEntries} />
+      <LearningEntryForm />
       <section>
-        <section>
         <h2>Entries from the backend</h2>
-        <button
-          type="button"
-          onClick={() => { void loadServerEntries().catch(() => {}); }}
-        >
+        <button type="button" onClick={() => void handleLoadEntries()}>
           Load from backend
         </button>
-        {loadError && <p>{loadError}</p>}
+        {loadError && <p role="alert">{loadError}</p>}
+
         <ul>
-          {serverEntries.map((entry) => (
+          {entries.map((entry) => (
             <li key={entry.id}>
               <LearningEntry entry={entry} />
             </li>
           ))}
         </ul>
-    </section>
       </section>
     </main>
   );

@@ -1,8 +1,8 @@
 import { useState } from "react";
+import { loadEntries } from "../api/entries";
 
-type Props = { onSaved: () => Promise<void> };
-
-export default function LearningEntryForm({ onSaved }: Props) {
+export default function LearningEntryForm() {
+    // Local state because these values are only used by the form.
     const [topic, setTopic] = useState("");
     const [date, setDate] = useState("");
     const [learned, setLearned] = useState("");
@@ -64,7 +64,7 @@ export default function LearningEntryForm({ onSaved }: Props) {
 
     // 3) Refresh the list from the server (MariaDB generated the id)
     try {
-      await onSaved();
+      await loadEntries();
       setMessage("Entry saved successfully.");
     } catch {
       setMessage("Entry was saved, but the list could not be refreshed.");
