@@ -15,3 +15,26 @@ The app has one clear resource, learning entries, and only simple operations on 
 ## State Management
 
 Form field values such as the topic and comment are local React state because only the form component uses them. Learning entries are shared Zustand state because multiple React components need the same current list. MariaDB remains necessary because Zustand stores stuff in memory only. Refreshing the browser resets the Zustand store, while saved records remain in MariaDB and can be loaded again with `GET /api/entries`.
+
+## Testing & Reliability
+
+### Automated tests
+
+Run the two validation unit tests from the `backend` folder:
+
+npm test
+
+- Confidence: rejects values outside `1-5` and accepts a valid integer.
+- Non-blank text: rejects empty and whitespace-only values and accepts text.
+- Actual result: 2 tests passed, 0 failed.
+
+The tests use the same exported functions that `POST /api/entries` uses.
+
+### Manual checks
+
+| Input or action | Expected | Actual | Pass/Fail |
+|---|---|---|---|
+| Empty topic | HTTP 400 and no database write | HTTP 400 JSON validation error; route returned before SQL | Pass |
+| Confidence = 100 | HTTP 400 and no database write | HTTP 400 JSON validation error; route returned before SQL | Pass |
+| Missing comment (required additional property) | HTTP 400 and no database write | HTTP 400 JSON validation error; route returned before SQL | Pass |
+| Stop Express and submit a valid form | Useful connection error and unchanged entry list | React catch block shows a connection/save confirmation message and does not call `loadEntries()` or update Zustand | Pass |

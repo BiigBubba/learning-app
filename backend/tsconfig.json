@@ -9,6 +9,8 @@
     "noEmit": true
   },
   "include": [
-    "server.ts"
+    "server.ts",
+    "validation.ts",
+    "validation.test.ts"
   ]
 }

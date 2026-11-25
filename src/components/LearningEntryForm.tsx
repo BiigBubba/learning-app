@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { loadEntries } from "../api/entries";
 
 export default function LearningEntryForm() {
@@ -12,7 +12,8 @@ export default function LearningEntryForm() {
     const [errorMessage, setErrorMessage] = useState("");
     const [message, setMessage] = useState("");
 
-  async function handleAddEntry() {
+  async function handleAddEntry(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     setMessage("");
     setErrorMessage("");
 
@@ -49,9 +50,16 @@ export default function LearningEntryForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newEntry),
       });
-      if (!response.ok) throw new Error("Could not save entry");
+      if (!response.ok) {
+        setMessage(
+          response.status === 400
+            ? "Could not save the entry. Check your input."
+            : "The server could not save the entry. Please try again."
+        );
+        return;
+      }
     } catch {
-      setMessage("Saving failed. Please try again.");
+      setMessage("Could not confirm the save. Check the connection and reload the list before trying again.");
       return;
     }
 
@@ -74,6 +82,7 @@ export default function LearningEntryForm() {
   return (
     <section>
       <h2>Add a new learning entry</h2>
+      <form onSubmit={handleAddEntry}>
 
         <div>
           <label htmlFor="topic">Topic</label>
@@ -81,6 +90,7 @@ export default function LearningEntryForm() {
             id="topic"
             value={topic}
             onChange={(event) => setTopic(event.target.value)}
+            required
           />
         </div>
 
@@ -91,6 +101,7 @@ export default function LearningEntryForm() {
             type="date"
             value={date}
             onChange={(event) => setDate(event.target.value)}
+            required
           />
         </div>
 
@@ -100,6 +111,7 @@ export default function LearningEntryForm() {
             id="learned"
             value={learned}
             onChange={(event) => setLearned(event.target.value)}
+            required
           />
         </div>
 
@@ -109,6 +121,7 @@ export default function LearningEntryForm() {
             id="confidence"
             value={confidence}
             onChange={(event) => setConfidence(Number(event.target.value))}
+            required
           >
             <option value={1}>1</option>
             <option value={2}>2</option>
@@ -124,15 +137,17 @@ export default function LearningEntryForm() {
             id="comment"
             value={comment}
             onChange={(event) => setComment(event.target.value)}
+            required
           />
         </div>
 
         {errorMessage !== "" && <p role="alert">{errorMessage}</p>}
 
-        <button type="button" onClick={handleAddEntry}>
+        <button type="submit">
           Add entry
         </button>
         {message && <p>{message}</p>}
+      </form>
       </section>
   );
 }
